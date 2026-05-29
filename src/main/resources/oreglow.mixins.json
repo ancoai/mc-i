@@ -5,6 +5,9 @@
   "mixins": [
     "AbstractBlockStateMixin"
   ],
+  "client": [
+    "MinecraftClientMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
