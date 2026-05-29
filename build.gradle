@@ -12,6 +12,13 @@ base {
 
 loom {
     splitEnvironmentSourceSets()
+
+    mods {
+        oreglow {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
 }
 
 dependencies {
