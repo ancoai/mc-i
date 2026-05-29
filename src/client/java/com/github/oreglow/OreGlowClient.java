@@ -15,6 +15,10 @@ import net.minecraft.entity.effect.StatusEffects;
 import org.joml.Vector3f;
 
 import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class OreGlowClient {
     private static final int SCAN_INTERVAL_TICKS = 5;
@@ -32,11 +36,25 @@ public final class OreGlowClient {
     private static final DustParticleEffect COAL_GLOW = new DustParticleEffect(new Vector3f(0.38F, 0.38F, 0.42F), 0.68F);
     private static final DustParticleEffect QUARTZ_GLOW = new DustParticleEffect(new Vector3f(1.0F, 0.92F, 0.78F), 0.76F);
     private static final DustParticleEffect DEBRIS_GLOW = new DustParticleEffect(new Vector3f(0.58F, 0.24F, 0.86F), 0.88F);
+    private static final AtomicBoolean STARTED = new AtomicBoolean();
 
     private OreGlowClient() {
     }
 
-    public static void tick(MinecraftClient client) {
+    public static void start(MinecraftClient client) {
+        if (!STARTED.compareAndSet(false, true)) {
+            return;
+        }
+
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "Ore Glow Night Vision Aura");
+            thread.setDaemon(true);
+            return thread;
+        });
+        executor.scheduleWithFixedDelay(() -> client.execute(() -> tick(client)), 250L, 250L, TimeUnit.MILLISECONDS);
+    }
+
+    private static void tick(MinecraftClient client) {
         ClientPlayerEntity player = client.player;
         ClientWorld world = client.world;
         if (player == null || world == null || !player.hasStatusEffect(StatusEffects.NIGHT_VISION)) {
