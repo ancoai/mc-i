@@ -13,6 +13,9 @@
   "entrypoints": {
     "main": [
       "com.github.oreglow.OreGlowMod"
+    ],
+    "client": [
+      "com.github.oreglow.OreGlowClientInitializer"
     ]
   },
   "mixins": [
