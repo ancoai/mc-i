@@ -33,6 +33,20 @@ processResources {
     filesMatching('fabric.mod.json') {
         expand 'version': project.version
     }
+    doLast {
+        file("${destinationDir}/oreglow.mixins.json").text = '''{
+  "required": true,
+  "package": "com.github.oreglow.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "AbstractBlockStateMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
+'''
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
