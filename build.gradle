@@ -12,6 +12,13 @@ base {
 
 loom {
     splitEnvironmentSourceSets()
+
+    mods {
+        oreglow {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
 }
 
 dependencies {
@@ -21,9 +28,24 @@ dependencies {
 }
 
 processResources {
+    outputs.upToDateWhen { false }
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') {
         expand 'version': project.version
+    }
+    doLast {
+        file("${destinationDir}/oreglow.mixins.json").text = '''{
+  "required": true,
+  "package": "com.github.oreglow.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "AbstractBlockStateMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
+'''
     }
 }
 
@@ -35,4 +57,53 @@ java {
     withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.named('compileClientJava') {
+    doFirst {
+        delete layout.buildDirectory.file('classes/java/client/com/github/oreglow/mixin/MinecraftClientMixin.class')
+    }
+}
+
+tasks.named('jar') {
+    exclude 'com/github/oreglow/mixin/MinecraftClientMixin.class'
+}
+
+tasks.register('verifyNoLegacyClientMixin') {
+    dependsOn tasks.named('remapJar')
+
+    doLast {
+        def remappedJar = tasks.named('remapJar').get().archiveFile.get().asFile
+        def legacyMixinClass = zipTree(remappedJar).matching {
+            include 'com/github/oreglow/mixin/MinecraftClientMixin.class'
+        }
+        if (!legacyMixinClass.isEmpty()) {
+            throw new GradleException('Production jar must not contain legacy MinecraftClientMixin.class')
+        }
+
+        def mixinJson = zipTree(remappedJar).matching {
+            include 'oreglow.mixins.json'
+        }.singleFile.text
+        if (mixinJson.contains('MinecraftClientMixin')) {
+            throw new GradleException('Production jar must not reference legacy MinecraftClientMixin')
+        }
+    }
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('verifyNoLegacyClientMixin')
+}
+
+tasks.register('deleteOldModJars') {
+    doLast {
+        delete fileTree(layout.buildDirectory.dir('libs')) {
+            include "${project.archives_base_name}-*.jar"
+            exclude "${project.archives_base_name}-${project.version}.jar"
+            exclude "${project.archives_base_name}-${project.version}-sources.jar"
+        }
+    }
+}
+
+tasks.named('build') {
+    finalizedBy tasks.named('deleteOldModJars')
 }
