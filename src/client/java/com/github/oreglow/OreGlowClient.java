@@ -54,7 +54,7 @@ public final class OreGlowClient {
         executor.scheduleWithFixedDelay(() -> client.execute(() -> tick(client)), 250L, 250L, TimeUnit.MILLISECONDS);
     }
 
-    private static void tick(MinecraftClient client) {
+    public static void tick(MinecraftClient client) {
         ClientPlayerEntity player = client.player;
         ClientWorld world = client.world;
         if (player == null || world == null || !player.hasStatusEffect(StatusEffects.NIGHT_VISION)) {
